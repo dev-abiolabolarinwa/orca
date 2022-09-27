@@ -28,10 +28,17 @@ export interface Channel {
   order: number;
 }
 
+export interface ExistingMediaProps {
+  type: string;
+  url: string;
+  publicId: string;
+}
+
 export interface Post {
   _id: string;
   title: string;
   image?: string;
+  media?: ExistingMediaProps[];
   imagePublicId?: string;
   channel: Channel;
   author: any;

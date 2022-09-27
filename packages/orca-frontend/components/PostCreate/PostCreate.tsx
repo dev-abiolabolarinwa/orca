@@ -2,21 +2,17 @@ import { ChangeEvent, FC, FormEvent, useState, Fragment } from 'react';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation, useQueryClient } from 'react-query';
-import { CloseIcon } from '../ui/icons';
-import PostImageUpload from './PostImageUpload';
-import { MaxImageSize, Channel } from '../../constants';
-import { TextAreaAutoSize, Spacing, Button, Modal, Select, Avatar } from '../ui';
-import {
-  Options,
-  OptionsText,
-  SelectContainer,
-  ImagePreviewContainer,
-  CloseIconContainer,
-  ImagePreview,
-} from './style';
 import { RootState } from '../../store';
 import { AlertTypes, openAlert } from '../../store/alert';
 import { updateCache } from './cache';
+
+import { PostLimits, Channel, ExistingMediaProps } from '../../constants';
+import PreviewUploadFiles from './PreviewUploadFiles/PreviewUploadFiles';
+import PostImageUpload from './PostImageUpload';
+import DragDropZone from './DragDropZone/DragDropZone';
+import { MediaZone, Options, OptionsText, Group, SelectContainer, RoundedButton } from './style';
+import { TextAreaAutoSize, Spacing, Button, Modal, Select, Avatar } from '../ui';
+import { PhoneIcon } from '../ui/icons';
 
 const config = {
   headers: {
@@ -24,23 +20,29 @@ const config = {
   },
 };
 
-const createPost = async ({ title, image, channelId }) => {
+const createPost = async ({ title, media, channelId }) => {
   const formData = new FormData();
   formData.append('title', title);
-  formData.append('image', image);
   formData.append('channelId', channelId);
+
+  for (const file of media) {
+    formData.append('media', file);
+  }
 
   const newPost = await axios.post('/posts/create', formData, config);
   return newPost.data;
 };
 
-const updatePost = async ({ postId, title, image, imageToDeletePublicId, channelId }) => {
+const updatePost = async ({ postId, title, media, mediaToDeletePublicId, channelId }) => {
   const formData = new FormData();
   formData.append('postId', postId);
   formData.append('title', title);
-  formData.append('image', image);
   formData.append('channelId', channelId);
-  formData.append('imageToDeletePublicId', imageToDeletePublicId);
+  formData.append('mediaToDeletePublicId', JSON.stringify(mediaToDeletePublicId));
+
+  for (const file of media) {
+    formData.append('media', file);
+  }
 
   const updatedPost = await axios.put('/posts/update', formData, config);
   return updatedPost.data;
@@ -51,6 +53,7 @@ interface PostCreateProps {
   postId?: string;
   postTitle?: string;
   postImage?: string;
+  postMedia?: ExistingMediaProps[];
   postImagePublicId?: string;
   channelId?: string;
   queryKey: any;
@@ -63,9 +66,8 @@ const PostCreate: FC<PostCreateProps> = ({
   channelId,
   postId,
   postTitle,
-  postImage,
+  postMedia,
   queryKey,
-  postImagePublicId,
 }) => {
   const authUser = useSelector((state: RootState) => state.auth.user);
   const queryClient = useQueryClient();
@@ -74,10 +76,13 @@ const PostCreate: FC<PostCreateProps> = ({
   const initialState = {
     title: postTitle || '',
     channelId: channelId ? channelId : channels && channels[0]?._id,
-    image: null,
+    media: [],
   };
-  const [formValues, setFormValues] = useState<{ title: string; channelId: string; image: File }>(initialState);
-  const [existingPostImage, setExistingPostImage] = useState(postImage);
+
+  const [formValues, setFormValues] = useState<{ title: string; channelId: string; media: Array<File> }>(initialState);
+  const [mediaToDeletePublicId, setMediaToDeletePublicId] = useState<Array<string>>([]);
+  const [existingPostMedia, setExistingPostMedia] = useState(postMedia || []);
+
   const { mutateAsync: createPostMutation, isLoading: isPostCreateLoading } = useMutation(createPost);
   const { mutateAsync: updatePostMutation, isLoading: isPostUpdateLoading } = useMutation(updatePost);
 
@@ -87,7 +92,11 @@ const PostCreate: FC<PostCreateProps> = ({
     try {
       // If we don't have a post id, it means we need to create one.
       if (!postId) {
-        const post = await createPostMutation({ ...formValues });
+        const post = await createPostMutation({
+          channelId: formValues.channelId,
+          media: formValues.media,
+          title: formValues.title,
+        });
         updateCache({
           queryKey,
           operation: 'create',
@@ -98,19 +107,11 @@ const PostCreate: FC<PostCreateProps> = ({
         notify('added');
         close();
       } else {
-        let imageToDeleteId = '';
-        // If a user has uploaded a new photo, we need to delete the previous one.
-        if (formValues.image) {
-          imageToDeleteId = postImagePublicId || '';
-          // If existingPostImage and postImagePublicId are not defined, the user has deleted a photo.
-        } else if (!existingPostImage) {
-          imageToDeleteId = postImagePublicId || '';
-        }
         const updatedPost = await updatePostMutation({
           postId,
-          imageToDeletePublicId: imageToDeleteId,
+          mediaToDeletePublicId,
           title: formValues.title,
-          image: formValues.image || '', // We need to upload an image only if a user has added a new one.
+          media: formValues.media,
           channelId: formValues.channelId,
         });
         updateCache({
@@ -151,45 +152,69 @@ const PostCreate: FC<PostCreateProps> = ({
   };
 
   const isFormValid = () => {
-    const { title, image } = formValues;
-    return title || image;
+    const { title, media } = formValues;
+    return title || media.length;
   };
 
   const handlePostImageUpload = (e: ChangeEvent) => {
-    const file = (e.target as HTMLInputElement).files[0];
+    const media = [...formValues.media];
+    const files = (e.target as HTMLInputElement).files;
 
-    if (!file) return;
+    if (!files.length) return;
 
-    if (!file.type.match(/image-*/)) return;
-
-    if (file.size >= MaxImageSize.Post) {
-      alert(`File size should be less than ${MaxImageSize.Post / 1000000}MB`);
+    if (files.length > PostLimits.maxFilesLength || formValues.media.length > PostLimits.maxFilesLength) {
+      alert(`You cannot exceed the allowed limit of ${PostLimits.maxFilesLength} files`);
+      (e.target as HTMLInputElement).value = null;
       return;
     }
 
-    setFormValues({ ...formValues, image: file });
+    for (let i = 0; i < files.length; ++i) {
+      const file = files[i];
+
+      if (file.type.includes('image')) {
+        if (file.size <= PostLimits.maxImageSize) {
+          media.push(file);
+        } else {
+          alert(`The image size should be less than ${PostLimits.maxImageSize / 1000000}MB`);
+          (e.target as HTMLInputElement).value = null;
+          return;
+        }
+      } else if (file.type.includes('video')) {
+        if (file.size <= PostLimits.maxVideoSize) {
+          media.push(file);
+        } else {
+          alert(`The video size should be less than ${PostLimits.maxVideoSize / 1000000}MB`);
+          (e.target as HTMLInputElement).value = null;
+          return;
+        }
+      }
+    }
+
+    setFormValues({ ...formValues, media: media });
     (e.target as HTMLInputElement).value = null;
   };
 
-  const closeImagePreview = () => {
-    setFormValues({ ...formValues, image: null });
-    setExistingPostImage('');
+  const deleteImageUpload = (file, from: string) => {
+    if (from === 'newMedia') {
+      setFormValues({
+        ...formValues,
+        media: formValues.media.filter((item) => item.name !== file.name),
+      });
+    }
+
+    if (from === 'existingMedia') {
+      setExistingPostMedia(existingPostMedia.filter((item) => item.publicId !== file.publicId));
+      setMediaToDeletePublicId([...mediaToDeletePublicId, file.publicId]);
+    }
   };
 
-  const renderImagePreview = () => {
-    if (formValues.image || existingPostImage) {
+  const renderMediaZone = () => {
+    if (formValues.media.length || existingPostMedia.length) {
       return (
-        <Spacing bottom="sm">
-          <ImagePreviewContainer>
-            <CloseIconContainer>
-              <Button type="button" ghost onClick={closeImagePreview}>
-                <CloseIcon color="white" />
-              </Button>
-            </CloseIconContainer>
-            <ImagePreview src={formValues.image ? URL.createObjectURL(formValues.image) : existingPostImage} />
-          </ImagePreviewContainer>
-        </Spacing>
+        <PreviewUploadFiles newMedia={formValues.media} existingMedia={existingPostMedia} onClick={deleteImageUpload} />
       );
+    } else {
+      return <DragDropZone handleChange={handlePostImageUpload} />;
     }
   };
 
@@ -219,12 +244,23 @@ const PostCreate: FC<PostCreateProps> = ({
           />
         </Spacing>
 
-        {renderImagePreview()}
+        <MediaZone>
+          {renderMediaZone()}
 
-        <Options>
-          <OptionsText>Add to your post</OptionsText>
-          <PostImageUpload label="Photo" handleChange={handlePostImageUpload} />
-        </Options>
+          <Options>
+            <Group>
+              <RoundedButton>
+                <PhoneIcon />
+              </RoundedButton>
+              <OptionsText>
+                Add photos and videos from your device. {formValues.media.length + existingPostMedia.length}/
+                {PostLimits.maxFilesLength}
+              </OptionsText>
+            </Group>
+
+            <PostImageUpload label="Add " handleChange={handlePostImageUpload} />
+          </Options>
+        </MediaZone>
 
         <Button
           fullWidth
@@ -232,7 +268,7 @@ const PostCreate: FC<PostCreateProps> = ({
           color="primary"
           disabled={!isFormValid() || isPostCreateLoading || isPostUpdateLoading}
         >
-          Post
+          {postId ? 'Update' : 'Post'}
         </Button>
       </form>
     </Modal>

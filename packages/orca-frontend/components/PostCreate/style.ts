@@ -7,39 +7,44 @@ export const SelectContainer = styled.div`
   padding: 0 ${(p) => p.theme.spacing.xs};
 `;
 
-export const Options = styled.div`
+export const MediaZone = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: fit-content;
+  max-height: 420px;
   border: 1px solid ${(p) => p.theme.colors.grey[40]};
+  border-radius: ${(p) => p.theme.radius.md};
+  margin-bottom: ${(p) => p.theme.spacing.sm};
+  padding: ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xxs}
+    ${(p) => p.theme.spacing.xs};
+`;
+
+export const Options = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${(p) => p.theme.spacing.sm};
-  padding: ${(p) => p.theme.spacing.xxs} 0 ${(p) => p.theme.spacing.xxs} ${(p) => p.theme.spacing.xs};
+  background-color: ${(p) => p.theme.colors.grey[5]};
+  padding: ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xxs}
+    ${(p) => p.theme.spacing.xs};
   border-radius: ${(p) => p.theme.radius.md};
 `;
 
 export const OptionsText = styled.span`
   font-size: ${(p) => p.theme.font.size.xs};
+  border-radius: ${(p) => p.theme.radius.md};
 `;
 
-export const ImagePreviewContainer = styled.div`
-  position: relative;
-  width: 100%;
-  max-height: 300px;
-  overflow: hidden;
-  flex-shrink: 0;
-  overflow: auto;
-  box-shadow: ${(p) => p.theme.shadows.sm};
+export const Group = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;
 
-export const CloseIconContainer = styled.div`
-  position: absolute;
-  right: ${(p) => p.theme.spacing.sm};
-  top: ${(p) => p.theme.spacing.sm};
-`;
-
-export const ImagePreview = styled.img`
-  width: 100%;
-  display: block;
-  object-fit: cover;
+export const RoundedButton = styled.div`
+  display: flex;
+  padding: 8px 12px;
+  background-color: ${(p) => p.theme.colors.grey[20]};
+  border-radius: 50%;
 `;

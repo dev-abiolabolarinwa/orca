@@ -37,3 +37,5 @@ export { default as BanIcon } from './BanIcon';
 export { default as UnbanIcon } from './UnbanIcon';
 export { default as PinnedIcon } from './PinnedIcon';
 export { default as DragIcon } from './DragIcon';
+export { default as PhoneIcon } from './PhoneIcon';
+export { default as MultipleMediaIcon } from './MultipleMediaIcon';

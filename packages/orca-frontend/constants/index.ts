@@ -4,3 +4,4 @@ export * from './types';
 export { DataLimit } from './DataLimit';
 export { Events } from './Events';
 export * from './Community';
+export { PostLimits } from './PostLimits';
