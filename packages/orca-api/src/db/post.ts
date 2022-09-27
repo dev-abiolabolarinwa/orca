@@ -137,6 +137,7 @@ export const getPostById = async (id: string): Promise<any> => {
 
 export const createPost = async (
   title: string,
+  media: Array,
   imageUrl: string,
   imagePublicId: string,
   channelId: string,
@@ -144,6 +145,7 @@ export const createPost = async (
 ): Promise<any> => {
   const newPost = await new Post({
     title,
+    media,
     image: imageUrl,
     imagePublicId,
     channel: channelId,
@@ -161,24 +163,32 @@ export const createPost = async (
 export const updatePost = async (
   postId: string,
   title: string,
-  imageUrl?: string,
-  imagePublicId?: string,
-  imageToDeletePublicId?: string,
+  media?: Array,
+  mediaToDeletePublicId?: Array,
   channelId: string
 ): Promise<any> => {
   const fields = {
     title,
     channel: channelId,
+    media: [],
   };
 
-  // If imageUrl and imagePublicId are defined, the user has uploaded a new image. Hence we need to update these fields.
-  if (imageUrl && imagePublicId) {
-    fields.image = imageUrl;
-    fields.imagePublicId = imagePublicId;
-    // However, if imageUrl and imagePublicId are not defined and imageToDeletePublicId is defined, a user has deleted an existing image.
-  } else if (imageToDeletePublicId) {
-    fields.image = '';
-    fields.imagePublicId = '';
+  // If the array contains elements, we have images to remove.
+  if (mediaToDeletePublicId && mediaToDeletePublicId.length) {
+    const mediaUpdated = await Post.findByIdAndUpdate(
+      postId,
+      {
+        $pull: { media: { publicId: { $in: mediaToDeletePublicId } } },
+      },
+      { new: true }
+    );
+
+    fields.media = [...fields.media, ...mediaUpdated.media];
+  }
+
+  // If the array contains new images.
+  if (media.length) {
+    fields.media = [...fields.media, ...media];
   }
 
   const updatedPost = await Post.findOneAndUpdate({ _id: postId }, { ...fields }, { new: true })
