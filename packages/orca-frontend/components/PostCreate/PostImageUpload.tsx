@@ -11,10 +11,10 @@ const Label = styled.label`
   transition: background-color 0.1s;
   font-weight: ${(p) => p.theme.font.weight.bold};
   border-radius: ${(p) => p.theme.radius.sm};
-  background-color: ${(p) => p.theme.colors.grey[20]};
+  background-color: ${(p) => p.theme.colors.grey[30]};
   font-size: ${(p) => p.theme.font.size.xxs};
   &:hover {
-    background-color: ${(p) => p.theme.colors.grey[30]};
+    background-color: ${(p) => p.theme.colors.grey[40]};
   }
 `;
 

@@ -83,6 +83,7 @@ const PostCard: FC<PostCardProps> = ({
           isPostCreateOpen={isPostCreateOpen}
           closePostCreate={() => setIsPostCreateOpen(false)}
           postId={post._id}
+          postMedia={post.media}
           postTitle={post.title}
           postImage={post.image}
           postImagePublicId={post.imagePublicId}
@@ -130,6 +131,7 @@ const PostCard: FC<PostCardProps> = ({
             channelId={post.channel?._id}
             openPostCreate={() => setIsPostCreateOpen(true)}
             imagePublicId={post.imagePublicId}
+            media={post.media}
             pinned={post.pinned}
             refetch={refetch}
           />

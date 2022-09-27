@@ -15,6 +15,7 @@ export const MediaContainer = styled.div`
 
 export const ImagePreview = styled.img`
   width: fit-content;
+  min-width: 40px;
   max-width: 230px;
   height: 150px;
   object-fit: cover;

@@ -8,9 +8,13 @@ export const Container = styled.div`
   align-items: center;
   height: 300px;
   width: 100%;
-  background-color: ${(p) => p.theme.colors.grey[5]};
+  background-color: ${(p) => p.theme.colors.grey[10]};
   border-radius: ${(p) => p.theme.radius.md};
   margin-bottom: ${(p) => p.theme.spacing.xs};
+
+  &:hover {
+    background-color: ${(p) => p.theme.colors.grey[20]};
+  }
 `;
 
 export const Input = styled.input`
@@ -36,6 +40,6 @@ export const Parraf = styled.p`
 export const RoundedButton = styled.div`
   display: flex;
   padding: 12px 12px;
-  background-color: ${(p) => p.theme.colors.grey[20]};
+  background-color: ${(p) => p.theme.colors.grey[30]};
   border-radius: 50%;
 `;

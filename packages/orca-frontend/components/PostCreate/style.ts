@@ -25,7 +25,7 @@ export const Options = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background-color: ${(p) => p.theme.colors.grey[5]};
+  background-color: ${(p) => p.theme.colors.grey[10]};
   padding: ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xs} ${(p) => p.theme.spacing.xxs}
     ${(p) => p.theme.spacing.xs};
   border-radius: ${(p) => p.theme.radius.md};
@@ -45,6 +45,6 @@ export const Group = styled.div`
 export const RoundedButton = styled.div`
   display: flex;
   padding: 8px 12px;
-  background-color: ${(p) => p.theme.colors.grey[20]};
+  background-color: ${(p) => p.theme.colors.grey[30]};
   border-radius: 50%;
 `;

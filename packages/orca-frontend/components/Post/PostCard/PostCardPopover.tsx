@@ -9,11 +9,12 @@ import { Popover, PopoverContent } from './style';
 import { openAlert, AlertTypes } from '../../../store/alert';
 import { useRouter } from 'next/router';
 import { RootState } from '../../../store';
-import { UserRole } from '../../../constants';
+import { UserRole, ExistingMediaProps } from '../../../constants';
 
 interface PostCardPopoverProps {
   postId: string;
   pinned?: boolean;
+  media?: ExistingMediaProps[];
   channelId: string;
   queryKey: any;
   imagePublicId: string;
@@ -21,8 +22,8 @@ interface PostCardPopoverProps {
   refetch?: any;
 }
 
-const deletePost = async ({ id: id, imagePublicId: imagePublicId }) => {
-  const newPost = await axios.delete('/posts/delete', { data: { id, imagePublicId } });
+const deletePost = async ({ id: id, imagePublicId: imagePublicId, media: media }) => {
+  const newPost = await axios.delete('/posts/delete', { data: { id, imagePublicId, media } });
   return newPost.data;
 };
 
@@ -34,6 +35,7 @@ const pinPost = async ({ id, pinned }) => {
 const PostCardPopover: FC<PostCardPopoverProps> = ({
   postId,
   pinned,
+  media,
   queryKey,
   imagePublicId,
   refetch,
@@ -75,7 +77,7 @@ const PostCardPopover: FC<PostCardPopoverProps> = ({
 
   const removePost = async () => {
     try {
-      const deletedPost = await deletePostMutation({ id: postId, imagePublicId });
+      const deletedPost = await deletePostMutation({ id: postId, imagePublicId, media });
       // If a user deletes a post on which page they are on, we'll redirect them to the home page.
       // Hence, we don't need to update the cache.
       if (router.route !== '/post/[id]') {
