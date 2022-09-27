@@ -184,6 +184,10 @@ export const updatePost = async (
     );
 
     fields.media = [...fields.media, ...mediaUpdated.media];
+  } else {
+    // Anyway we need to access the media array
+    const postFind = await Post.findById(postId);
+    fields.media = [...postFind.media];
   }
 
   // If the array contains new images.

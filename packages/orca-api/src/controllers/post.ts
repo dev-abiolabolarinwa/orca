@@ -91,7 +91,6 @@ const PostController = {
       // Deleted the image selected
       for (const publicId of parsedMediaToDelete) {
         const deletedFile = await deleteFromCloudinary(publicId);
-        console.log(publicId, deletedFile);
         if (deletedFile.result !== 'ok') {
           return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
         }
