@@ -9,57 +9,38 @@ interface ExistingMediaProps {
 }
 
 interface PeviewUploadFilesProps {
-  newMedia?: Array<File>;
+  newMedia?: any;
   existingMedia?: ExistingMediaProps[];
   onClick: (a, b) => void;
 }
 
 const PeviewUploadFiles: FC<PeviewUploadFilesProps> = ({ newMedia, existingMedia, onClick }) => {
+  const media = [...existingMedia, ...newMedia];
+
   return (
     <PreviewContainer>
-      {existingMedia.map((item, index) => {
+      {media.map((item, index) => {
+        const from = item.url ? 'existingMedia' : 'newMedia';
+        const src = item.url ? item.url : URL.createObjectURL(item);
+
         if (item.type.includes('image')) {
           return (
             <MediaContainer key={index}>
-              <CloseButton onClick={() => onClick(item, 'existingMedia')} type="button">
+              <CloseButton onClick={() => onClick(item, from)} type="button">
                 <CloseIcon width="10" />
               </CloseButton>
 
-              <ImagePreview src={item.url} />
+              <ImagePreview src={src} />
             </MediaContainer>
           );
         } else {
           return (
             <MediaContainer>
-              <CloseButton onClick={() => onClick(item, 'existingMedia')} type="button">
+              <CloseButton onClick={() => onClick(item, from)} type="button">
                 <CloseIcon width="10" />
               </CloseButton>
 
-              <VideoPreview src={item.url} controls />
-            </MediaContainer>
-          );
-        }
-      })}
-
-      {newMedia.map((item, index) => {
-        if (item.type.includes('image')) {
-          return (
-            <MediaContainer key={index}>
-              <CloseButton onClick={() => onClick(item, 'newMedia')} type="button">
-                <CloseIcon width="10" />
-              </CloseButton>
-
-              <ImagePreview src={URL.createObjectURL(item)} />
-            </MediaContainer>
-          );
-        } else {
-          return (
-            <MediaContainer>
-              <CloseButton onClick={() => onClick(item, 'newMedia')} type="button">
-                <CloseIcon width="10" />
-              </CloseButton>
-
-              <VideoPreview src={URL.createObjectURL(item)} controls />
+              <VideoPreview src={src} controls />
             </MediaContainer>
           );
         }
