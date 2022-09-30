@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
 import passport from 'passport';
+import multer from 'multer';
 import {
   ChannelController,
   UserController,
@@ -18,6 +19,9 @@ import { withUser } from './utils/withUser';
 import { handleFiles } from './utils';
 
 const router = Router();
+
+const storage = multer.memoryStorage();
+const multerUpload = multer({ storage });
 
 router.get('/', (req: Request, res: Response) => res.send('echo'));
 
@@ -44,7 +48,7 @@ router.get('/facebook/callback', AuthController.facebookCallback);
 router.get('/users/get-users', withUser, UserController.getUsers);
 router.get('/users/online-users', withUser, UserController.onlineUsers);
 router.get('/users/new-members', withUser, UserController.newMembers);
-router.post('/users/upload-photo', [checkIfUser, handleFiles], UserController.uploadPhoto);
+router.post('/users/upload-photo', [checkIfUser, multerUpload.single('image')], UserController.uploadPhoto);
 router.get('/users/:id', UserController.user);
 router.delete('/users/ban-user', checkIfSuperAdmin, UserController.banUser);
 
@@ -53,7 +57,7 @@ router.delete('/users/ban-user', checkIfSuperAdmin, UserController.banUser);
  */
 router.get('/settings', SettingsController.settings);
 router.put('/settings/update-community', checkIfAdmin, SettingsController.updateCommunity);
-router.post('/settings/upload-logo', [checkIfAdmin, handleFiles], SettingsController.uploadLogo);
+router.post('/users/upload-photo', [checkIfUser, multerUpload.single('image')], UserController.uploadPhoto);
 router.put('/settings/update-user', checkIfUser, SettingsController.updateProfile);
 router.get('/settings/users', checkIfSuperAdmin, SettingsController.users);
 router.get('/settings/users-total', checkIfSuperAdmin, SettingsController.usersTotal);
