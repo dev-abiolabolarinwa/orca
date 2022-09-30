@@ -1,6 +1,5 @@
 import { Request, Response, Router } from 'express';
 import passport from 'passport';
-import multer from 'multer';
 import {
   ChannelController,
   UserController,
@@ -16,11 +15,9 @@ import {
 } from './controllers';
 import { checkIfAdmin, checkIfSuperAdmin, checkIfUser } from './utils/protectedRoute';
 import { withUser } from './utils/withUser';
+import { handleFiles } from './utils';
 
 const router = Router();
-
-const storage = multer.memoryStorage();
-const multerUpload = multer({ storage });
 
 router.get('/', (req: Request, res: Response) => res.send('echo'));
 
@@ -47,7 +44,7 @@ router.get('/facebook/callback', AuthController.facebookCallback);
 router.get('/users/get-users', withUser, UserController.getUsers);
 router.get('/users/online-users', withUser, UserController.onlineUsers);
 router.get('/users/new-members', withUser, UserController.newMembers);
-router.post('/users/upload-photo', [checkIfUser, multerUpload.single('image')], UserController.uploadPhoto);
+router.post('/users/upload-photo', [checkIfUser, handleFiles], UserController.uploadPhoto);
 router.get('/users/:id', UserController.user);
 router.delete('/users/ban-user', checkIfSuperAdmin, UserController.banUser);
 
@@ -56,7 +53,7 @@ router.delete('/users/ban-user', checkIfSuperAdmin, UserController.banUser);
  */
 router.get('/settings', SettingsController.settings);
 router.put('/settings/update-community', checkIfAdmin, SettingsController.updateCommunity);
-router.post('/settings/upload-logo', [checkIfAdmin, multerUpload.single('image')], SettingsController.uploadLogo);
+router.post('/settings/upload-logo', [checkIfAdmin, handleFiles], SettingsController.uploadLogo);
 router.put('/settings/update-user', checkIfUser, SettingsController.updateProfile);
 router.get('/settings/users', checkIfSuperAdmin, SettingsController.users);
 router.get('/settings/users-total', checkIfSuperAdmin, SettingsController.usersTotal);
@@ -80,8 +77,8 @@ router.get('/posts/channel/:channelId', PostController.postsByChannelId);
 router.get('/posts/author/:authorId', PostController.postsByAuthorId);
 router.get('/posts/follow', withUser, PostController.postsByFollowing);
 router.get('/posts/:id', PostController.postById);
-router.post('/posts/create', checkIfUser, multerUpload.single('image'), PostController.create);
-router.put('/posts/update', checkIfUser, multerUpload.single('image'), PostController.update);
+router.post('/posts/create', checkIfUser, handleFiles, PostController.create);
+router.put('/posts/update', checkIfUser, handleFiles, PostController.update);
 router.delete('/posts/delete', checkIfUser, PostController.delete);
 router.post('/posts/pin', checkIfSuperAdmin, PostController.pin);
 
