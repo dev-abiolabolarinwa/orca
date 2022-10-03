@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthUser, ErrorCodes, ErrorMessages, UserRole } from '../constants';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary';
+import { checkFileSize } from '../utils';
 import {
   getPostsByChannelId,
   getPostsByAuthorId,
@@ -40,32 +41,43 @@ const PostController = {
   create: async (req: Request, res: Response): Promise<any> => {
     const authUser = req.user as AuthUser;
     const { title, channelId } = req.body;
-    const image = req.file;
+    //@ts-ignore
+    const files = req.files.media;
 
-    if (!title && !image) {
+    if (!title && !files) {
       return res.status(400).send('Post title or image is required.');
     }
-    if (image && !image.mimetype.match(/image-*/)) {
-      return res.status(ErrorCodes.Bad_Request).send('Please upload an image.');
+
+    const mediaReady = [];
+    // If the user uploads several files for the new way
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        checkFileSize(file, res);
+
+        const uploadFile = await uploadToCloudinary(file, 'post');
+
+        if (!uploadFile.secure_url) {
+          return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+        }
+
+        mediaReady.push({
+          url: uploadFile.secure_url,
+          publicId: uploadFile.public_id,
+          type: file.mimetype.split('/')[0],
+        });
+      }
     }
 
-    let imageUrl: string;
-    let imagePublicId: string;
-    if (image) {
-      const uploadImage = await uploadToCloudinary(image, 'post');
-      if (!uploadImage.secure_url) {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
-      }
-      imageUrl = uploadImage.secure_url;
-      imagePublicId = uploadImage.public_id;
-    }
-    const newPost: any = await createPost(title, imageUrl, imagePublicId, channelId, authUser._id);
+    const newPost: any = await createPost(title, mediaReady, channelId, authUser._id);
     return res.send(newPost);
   },
   update: async (req: Request, res: Response): Promise<any> => {
     const authUser = req.user as AuthUser;
-    const { postId, title, imageToDeletePublicId, channelId } = req.body;
-    const image = req.file;
+    const { postId, title, channelId, mediaToDeletePublicId } = req.body;
+    const parsedMediaToDelete = mediaToDeletePublicId ? JSON.parse(mediaToDeletePublicId) : null;
+    //@ts-ignore
+    const files = req.files.media;
 
     // Super Admins can update another user's post.
     if (authUser.role !== UserRole.SuperAdmin) {
@@ -76,31 +88,43 @@ const PostController = {
       }
     }
 
-    // If the imageToDeletePublicId is defined, we need to remove an existing image.
-    if (imageToDeletePublicId) {
-      const deleteImage = await deleteFromCloudinary(imageToDeletePublicId);
-      if (deleteImage.result !== 'ok') {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+    console.log('Esto es lo que hay que eliminar:', parsedMediaToDelete);
+
+    // In case the user has deleted publications from a Post
+    if (parsedMediaToDelete) {
+      // Deleted the image selected
+      for (const publicId of parsedMediaToDelete) {
+        const deletedFile = await deleteFromCloudinary(publicId);
+        if (deletedFile.result !== 'ok') {
+          return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+        }
       }
     }
 
-    // If an image is defined, we need to upload a new image.
-    let imageUrl: string;
-    let imagePublicId: string;
-    if (image) {
-      const uploadImage = await uploadToCloudinary(image, 'post');
-      if (!uploadImage.secure_url) {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+    const mediaReady = [];
+    // Upload the new images if exist
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const uploadFile = await uploadToCloudinary(file, 'post');
+
+        if (!uploadFile.secure_url) {
+          return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+        }
+
+        mediaReady.push({
+          url: uploadFile.secure_url,
+          publicId: uploadFile.public_id,
+          type: file.mimetype.split('/')[0],
+        });
       }
-      imageUrl = uploadImage.secure_url;
-      imagePublicId = uploadImage.public_id;
     }
 
-    const updatedPost = await updatePost(postId, title, imageUrl, imagePublicId, imageToDeletePublicId, channelId);
+    const updatedPost = await updatePost(postId, title, mediaReady, parsedMediaToDelete, channelId);
     return res.send(updatedPost);
   },
   delete: async (req: Request, res: Response): Promise<any> => {
-    const { id, imagePublicId } = req.body;
+    const { id, media } = req.body;
     const authUser = req.user as AuthUser;
 
     // Super Admins can delete another user's post.
@@ -112,10 +136,12 @@ const PostController = {
       }
     }
 
-    if (imagePublicId) {
-      const deleteImage = await deleteFromCloudinary(imagePublicId);
-      if (deleteImage.result !== 'ok') {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+    if (media) {
+      for (const file of media) {
+        const deleteFile = await deleteFromCloudinary(file.publicId);
+        if (deleteFile.result !== 'ok') {
+          return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
+        }
       }
     }
 

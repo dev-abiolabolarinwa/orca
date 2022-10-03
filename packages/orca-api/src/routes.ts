@@ -16,6 +16,7 @@ import {
 } from './controllers';
 import { checkIfAdmin, checkIfSuperAdmin, checkIfUser } from './utils/protectedRoute';
 import { withUser } from './utils/withUser';
+import { handleFiles } from './utils';
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.delete('/users/ban-user', checkIfSuperAdmin, UserController.banUser);
  */
 router.get('/settings', SettingsController.settings);
 router.put('/settings/update-community', checkIfAdmin, SettingsController.updateCommunity);
-router.post('/settings/upload-logo', [checkIfAdmin, multerUpload.single('image')], SettingsController.uploadLogo);
+router.post('/users/upload-photo', [checkIfUser, multerUpload.single('image')], UserController.uploadPhoto);
 router.put('/settings/update-user', checkIfUser, SettingsController.updateProfile);
 router.get('/settings/users', checkIfSuperAdmin, SettingsController.users);
 router.get('/settings/users-total', checkIfSuperAdmin, SettingsController.usersTotal);
@@ -80,8 +81,8 @@ router.get('/posts/channel/:channelId', PostController.postsByChannelId);
 router.get('/posts/author/:authorId', PostController.postsByAuthorId);
 router.get('/posts/follow', withUser, PostController.postsByFollowing);
 router.get('/posts/:id', PostController.postById);
-router.post('/posts/create', checkIfUser, multerUpload.single('image'), PostController.create);
-router.put('/posts/update', checkIfUser, multerUpload.single('image'), PostController.update);
+router.post('/posts/create', checkIfUser, handleFiles, PostController.create);
+router.put('/posts/update', checkIfUser, handleFiles, PostController.update);
 router.delete('/posts/delete', checkIfUser, PostController.delete);
 router.post('/posts/pin', checkIfSuperAdmin, PostController.pin);
 

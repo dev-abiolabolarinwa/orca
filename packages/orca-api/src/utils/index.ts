@@ -6,3 +6,5 @@ export * from './protectedRoute';
 export * from './withUser';
 export * from './checkEmailVerification';
 export * from './social';
+export * from './handleFiles';
+export * from './checkFileSize';

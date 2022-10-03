@@ -135,17 +135,10 @@ export const getPostById = async (id: string): Promise<any> => {
   return post;
 };
 
-export const createPost = async (
-  title: string,
-  imageUrl: string,
-  imagePublicId: string,
-  channelId: string,
-  authorId: string
-): Promise<any> => {
+export const createPost = async (title: string, media: Array, channelId: string, authorId: string): Promise<any> => {
   const newPost = await new Post({
     title,
-    image: imageUrl,
-    imagePublicId,
+    media,
     channel: channelId,
     author: authorId,
   }).save();
@@ -161,24 +154,36 @@ export const createPost = async (
 export const updatePost = async (
   postId: string,
   title: string,
-  imageUrl?: string,
-  imagePublicId?: string,
-  imageToDeletePublicId?: string,
+  media?: Array,
+  mediaToDeletePublicId?: Array,
   channelId: string
 ): Promise<any> => {
   const fields = {
     title,
     channel: channelId,
+    media: [],
   };
 
-  // If imageUrl and imagePublicId are defined, the user has uploaded a new image. Hence we need to update these fields.
-  if (imageUrl && imagePublicId) {
-    fields.image = imageUrl;
-    fields.imagePublicId = imagePublicId;
-    // However, if imageUrl and imagePublicId are not defined and imageToDeletePublicId is defined, a user has deleted an existing image.
-  } else if (imageToDeletePublicId) {
-    fields.image = '';
-    fields.imagePublicId = '';
+  // If the array contains elements, we have images to remove.
+  if (mediaToDeletePublicId && mediaToDeletePublicId.length) {
+    const mediaUpdated = await Post.findByIdAndUpdate(
+      postId,
+      {
+        $pull: { media: { publicId: { $in: mediaToDeletePublicId } } },
+      },
+      { new: true }
+    );
+
+    fields.media = [...fields.media, ...mediaUpdated.media];
+  } else {
+    // Anyway we need to access the media array
+    const postFind = await Post.findById(postId);
+    fields.media = [...postFind.media];
+  }
+
+  // If the array contains new images.
+  if (media.length) {
+    fields.media = [...fields.media, ...media];
   }
 
   const updatedPost = await Post.findOneAndUpdate({ _id: postId }, { ...fields }, { new: true })
