@@ -43,29 +43,12 @@ const PostController = {
     const { title, channelId } = req.body;
     //@ts-ignore
     const files = req.files.media;
-    //@ts-ignore
-    const image = req.files.image[0];
 
-    if (!title && !files && !image) {
+    if (!title && !files) {
       return res.status(400).send('Post title or image is required.');
     }
 
     const mediaReady = [];
-    let imageUrl: string;
-    let imagePublicId: string;
-
-    // If the user uploads a single photo of the old way
-    if (image) {
-      checkFileSize(image, res);
-
-      const uploadImage = await uploadToCloudinary(image, 'post');
-      if (!uploadImage.secure_url) {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
-      }
-      imageUrl = uploadImage.secure_url;
-      imagePublicId = uploadImage.public_id;
-    }
-
     // If the user uploads several files for the new way
     if (files) {
       for (let i = 0; i < files.length; i++) {
@@ -86,17 +69,13 @@ const PostController = {
       }
     }
 
-    console.log('This is the files array: ', mediaReady);
-
-    const newPost: any = await createPost(title, imageUrl, imagePublicId, channelId, authUser._id);
+    const newPost: any = await createPost(title, mediaReady, channelId, authUser._id);
     return res.send(newPost);
   },
   update: async (req: Request, res: Response): Promise<any> => {
     const authUser = req.user as AuthUser;
-    const { postId, title, imageToDeletePublicId, channelId, mediaToDelete } = req.body;
-    const parsedMediaToDelete = mediaToDelete ? JSON.parse(mediaToDelete) : null;
-    //@ts-ignore
-    const image = req.files.image;
+    const { postId, title, channelId, mediaToDeletePublicId } = req.body;
+    const parsedMediaToDelete = mediaToDeletePublicId ? JSON.parse(mediaToDeletePublicId) : null;
     //@ts-ignore
     const files = req.files.media;
 
@@ -109,29 +88,9 @@ const PostController = {
       }
     }
 
-    // Update post with a SINGLE Photo
-    // If the imageToDeletePublicId is defined, we need to remove an existing image.
-    if (imageToDeletePublicId) {
-      const deleteImage = await deleteFromCloudinary(imageToDeletePublicId);
-      if (deleteImage.result !== 'ok') {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
-      }
-    }
+    console.log('Esto es lo que hay que eliminar:', parsedMediaToDelete);
 
-    // If an image is defined, we need to upload a new image.
-    let imageUrl: string;
-    let imagePublicId: string;
-    if (image) {
-      const uploadImage = await uploadToCloudinary(image, 'post');
-      if (!uploadImage.secure_url) {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
-      }
-      imageUrl = uploadImage.secure_url;
-      imagePublicId = uploadImage.public_id;
-    }
-    //------------------------------------------------------------------
-
-    // Update post with a MULTIPLE files
+    // In case the user has deleted publications from a Post
     if (parsedMediaToDelete) {
       // Deleted the image selected
       for (const publicId of parsedMediaToDelete) {
@@ -160,14 +119,12 @@ const PostController = {
         });
       }
     }
-    console.log('New media files:', mediaReady);
-    //------------------------------------------------------------------
 
-    const updatedPost = await updatePost(postId, title, imageUrl, imagePublicId, imageToDeletePublicId, channelId);
+    const updatedPost = await updatePost(postId, title, mediaReady, parsedMediaToDelete, channelId);
     return res.send(updatedPost);
   },
   delete: async (req: Request, res: Response): Promise<any> => {
-    const { id, imagePublicId, mediaToDelete } = req.body;
+    const { id, media } = req.body;
     const authUser = req.user as AuthUser;
 
     // Super Admins can delete another user's post.
@@ -179,17 +136,8 @@ const PostController = {
       }
     }
 
-    // If the user want to delete single file for a post
-    if (imagePublicId) {
-      const deleteImage = await deleteFromCloudinary(imagePublicId);
-      if (deleteImage.result !== 'ok') {
-        return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);
-      }
-    }
-
-    // If the user want to delete multiple files for a post
-    if (mediaToDelete) {
-      for (const file of mediaToDelete) {
+    if (media) {
+      for (const file of media) {
         const deleteFile = await deleteFromCloudinary(file.publicId);
         if (deleteFile.result !== 'ok') {
           return res.status(ErrorCodes.Internal).send(ErrorMessages.Generic);

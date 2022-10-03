@@ -10,8 +10,15 @@ const PostSchema = new Schema(
     pinned: Boolean,
     media: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'Media',
+        url: {
+          type: String,
+        },
+        publicId: {
+          type: String,
+        },
+        type: {
+          type: String,
+        },
       },
     ],
     channel: {
